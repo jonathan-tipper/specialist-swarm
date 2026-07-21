@@ -1,0 +1,53 @@
+{
+  "window": "2026-07-20T14:00:00Z to 2026-07-21T14:00:00Z",
+  "changes": [
+    {
+      "id": "CHG-9912",
+      "deployed_at": "2026-07-21T13:04:22Z",
+      "service": "checkout-api",
+      "type": "config",
+      "summary": "Reduce payment-gateway connection pool timeout from 30s to 5s",
+      "detail": "Part of latency-reduction workstream. Intent: fail fast on slow PSP responses rather than holding pool connections. Applied to all regions simultaneously.",
+      "staged_rollout": false,
+      "canary": false,
+      "author_role": "Payments engineer",
+      "reviewed_by_role": "Payments tech lead",
+      "rollback_safe": true,
+      "rollback_notes": "Config-only. No schema change. Revert is a single value."
+    },
+    {
+      "id": "CHG-9908",
+      "deployed_at": "2026-07-21T09:15:00Z",
+      "service": "pricing-svc",
+      "type": "code",
+      "summary": "Add currency rounding rule for JPY",
+      "staged_rollout": true,
+      "canary": true,
+      "author_role": "Commerce engineer",
+      "rollback_safe": true
+    },
+    {
+      "id": "CHG-9901",
+      "deployed_at": "2026-07-20T16:40:00Z",
+      "service": "inventory-svc",
+      "type": "code",
+      "summary": "Batch stock-level reads",
+      "staged_rollout": true,
+      "canary": true,
+      "author_role": "Fulfilment engineer",
+      "rollback_safe": true
+    },
+    {
+      "id": "CHG-9897",
+      "deployed_at": "2026-07-20T14:22:00Z",
+      "service": "edge-cdn",
+      "type": "config",
+      "summary": "WAF rule update — add anomalous-source-volume monitor",
+      "detail": "Added monitor 9102. Detection only, no blocking action configured.",
+      "staged_rollout": false,
+      "canary": false,
+      "author_role": "Security engineer",
+      "rollback_safe": true
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "incidents": [
+    {
+      "id": "INC-3908",
+      "date": "2026-02-14",
+      "severity": "SEV2",
+      "title": "Checkout 5xx after connection pool config change",
+      "duration_minutes": 74,
+      "root_cause": "A pool-size reduction deployed without canary exhausted available connections under normal peak load in smaller regions. US regions were unaffected because their pools had headroom.",
+      "resolution": "Rolled back the config change. Error rate recovered within 6 minutes.",
+      "action_items_status": "2 of 3 completed. 'Add canary stage to config deploy pipeline' remains OPEN.",
+      "note": "Same shape as a config-only change reaching all regions at once."
+    },
+    {
+      "id": "INC-4102",
+      "date": "2026-04-30",
+      "severity": "SEV3",
+      "title": "Anomalous single-ASN traffic to quote endpoint",
+      "duration_minutes": 0,
+      "root_cause": "A partner's mobile SDK shipped with an aggressive retry loop and no jitter. Traffic was legitimate but badly behaved. No customer impact — quote endpoint absorbed it.",
+      "resolution": "Contacted partner, they shipped a fix in 9 days. Added per-ASN rate limiting to the backlog.",
+      "action_items_status": "1 of 2 completed. 'Per-ASN rate limiting at gateway' remains OPEN.",
+      "note": "Traffic signature was near-identical to a scraping attack. Initial verdict was ATTACK; revised after partner contact."
+    },
+    {
+      "id": "INC-4310",
+      "date": "2026-06-08",
+      "severity": "SEV1",
+      "title": "Total checkout outage — expired PSP certificate",
+      "duration_minutes": 31,
+      "root_cause": "PSP client certificate expired. No expiry monitoring existed.",
+      "resolution": "Emergency certificate rotation.",
+      "action_items_status": "All 3 completed. Certificate expiry monitoring now in place.",
+      "note": "Failure was total, instant and region-uniform — the opposite signature to a partial regional degradation."
+    }
+  ]
+}
