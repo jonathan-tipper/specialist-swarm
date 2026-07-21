@@ -1,8 +1,6 @@
 import re
 from pathlib import Path
 
-import pytest
-
 from swarm import models
 
 STALE = ("claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-4-6", "claude-sonnet-4-5")
@@ -31,12 +29,14 @@ def test_no_date_suffixed_ids():
         assert not re.search(r"-\d{8}$", value), value
 
 
-@pytest.mark.xfail(reason="cleared by Tasks 9-13; remove this marker in Task 13", strict=True)
+EXCLUDED_DIRS = {".git", ".claude", "tests", ".venv", "venv", "env", "__pycache__"}
+
+
 def test_no_stale_model_ids_anywhere_in_repo():
     root = Path(__file__).resolve().parent.parent
     offenders = []
     for path in root.rglob("*.py"):
-        if ".git" in path.parts or "tests" in path.parts:
+        if EXCLUDED_DIRS & set(path.parts):
             continue
         text = path.read_text()
         for stale in STALE:

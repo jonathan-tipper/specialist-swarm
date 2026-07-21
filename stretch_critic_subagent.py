@@ -1,108 +1,82 @@
-"""
-Stretch: add a Critic sub-agent to the coordinator's roster.
+"""Stretch: add a Postmortem Reviewer to the commander's roster.
 
-The critic's job is to review the coordinator's draft before it goes out.
-It must produce one of three verdicts:
-- "ship it" (with a brief why)
-- "revise" (with specific revisions)
-- "stop" (with reason — e.g., we shouldn't pursue this deal)
+The reviewer gates the postmortem before publication, returning one of three
+verdicts: PUBLISH, REVISE, or ESCALATE.
 
-This script creates the critic agent and updates the coordinator's roster
-to include it. Then update the coordinator's system prompt to "always
-consult the Critic on the draft before finalising."
+Safe to re-run — the reviewer ID is recorded in .swarm_ids.json.
 
 Usage:
     python stretch_critic_subagent.py
 """
 
-import json
 import os
-from pathlib import Path
 
 from anthropic import Anthropic
 
+from swarm.roster import commander_spec, reviewer_spec
+from swarm.store import IdStore
 
-CRITIC_SYSTEM = """\
-You are the Deal Desk Critic. You don't write proposals. You review them.
+REVIEWER_GUIDANCE = """
 
-When the coordinator asks for your review, you'll receive:
-- The draft proposal
-- The RFP (for context)
+# Postmortem review
 
-Your job: deliver one of three verdicts.
-
-1. **SHIP IT** — the proposal is solid, with at most cosmetic suggestions.
-2. **REVISE** — specific issues that need fixing. List them tersely. No more
-   than 5 issues; if there are more, the proposal isn't ready.
-3. **STOP** — we shouldn't pursue this deal. Reasons might include: terms
-   we can't deliver, mismatched scale, regulatory issues, strategic conflict.
-
-Be sceptical. Your value to the coordinator is that you push back. A senior
-partner who never gets pushback gets sloppy.
-
-Lead your reply with: VERDICT: SHIP IT / REVISE / STOP.
+Before saving the final .docx, send your draft postmortem to the Postmortem
+Reviewer. They reply with one of: PUBLISH, REVISE, or ESCALATE.
+- If PUBLISH: write the final .docx.
+- If REVISE: address every issue and re-submit. Repeat at most twice.
+- If ESCALATE: do NOT write the .docx. Report the reviewer's reasoning to the
+  user and state what the incident still needs.
 """
 
 
+def entry_id(entry) -> str | None:
+    """Roster entries come back from the API as resolved objects, never bare
+    strings, regardless of which form was sent to create them."""
+    return entry if isinstance(entry, str) else getattr(entry, "id", None)
+
+
 def main() -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
+    if not os.environ.get("ANTHROPIC_API_KEY"):
         raise SystemExit("Set ANTHROPIC_API_KEY before running.")
 
-    coordinator_id = Path(".coordinator_id").read_text().strip()
-    specialist_ids = json.loads(Path(".specialist_ids.json").read_text())
+    store = IdStore()
+    commander_id = store.get("coordinator")
+    if not commander_id:
+        raise SystemExit("No commander found. Run create_coordinator.py first.")
 
-    client = Anthropic(
-        api_key=api_key,
-        default_headers={"anthropic-beta": "managed-agents-2026-04-01"},
-    )
+    client = Anthropic()
 
-    # Create the critic
-    critic = client.beta.agents.create(
-        name="Deal Desk Critic",
-        model="claude-opus-4-7",  # The critic needs to be sharp
-        system=CRITIC_SYSTEM,
-        tools=[{"type": "agent_toolset_20260401"}],
-        metadata={
-            "hackathon": "partner-basecamp-2026",
-            "track": "specialist-swarm",
-            "role": "critic",
-        },
-    )
-    print(f"Critic created: {critic.id}")
+    def create() -> str:
+        return client.beta.agents.create(**reviewer_spec()).id
 
-    # Add critic to specialist IDs and persist
-    specialist_ids["critic"] = critic.id
-    Path(".specialist_ids.json").write_text(json.dumps(specialist_ids, indent=2))
+    reviewer_id, created = store.get_or_create("reviewer", create)
+    print(f"{'Created' if created else 'Reusing'} reviewer: {reviewer_id}")
 
-    # Update coordinator's roster to include the critic
-    coordinator = client.beta.agents.retrieve(coordinator_id)
-    new_roster = list(coordinator.multiagent.agents) + [
-        {"type": "agent", "id": critic.id}
-    ]
+    commander = client.beta.agents.retrieve(commander_id)
+    roster = list(commander.multiagent.agents)
 
-    # Append critic guidance to the coordinator's system prompt
-    new_system = coordinator.system + (
-        "\n\n# Critic\n\n"
-        "Before producing the final document, send your draft to the Deal "
-        "Desk Critic. The Critic will reply with one of: SHIP IT, REVISE, "
-        "or STOP.\n"
-        "- If SHIP IT: produce the final docx.\n"
-        "- If REVISE: address the issues and re-submit to the Critic. "
-        "Repeat at most twice.\n"
-        "- If STOP: report to the user with the Critic's reasoning. Do "
-        "NOT produce the final docx.\n"
-    )
+    if reviewer_id in [entry_id(e) for e in roster]:
+        print("Reviewer already on the roster — nothing to do.")
+        return
 
+    system = commander.system
+    if "# Postmortem review" not in system:
+        system = system + REVIEWER_GUIDANCE
+
+    # commander.multiagent.agents always comes back as a list of resolved
+    # BetaManagedAgentsAgentReference objects, never bare strings, no matter
+    # which form was sent. Normalise to IDs and let commander_spec decide the
+    # wire shape again rather than appending a raw string to a list of models.
+    all_ids = [entry_id(e) for e in roster if entry_id(e)] + [reviewer_id]
     client.beta.agents.update(
-        coordinator_id,
-        version=coordinator.version,
-        system=new_system,
-        multiagent={"type": "coordinator", "agents": new_roster},
+        commander_id,
+        version=commander.version,
+        system=system,
+        multiagent=commander_spec(all_ids)["multiagent"],
     )
 
-    print(f"Coordinator roster updated. Now includes critic.")
-    print("Re-run run_deal_desk.py to see the critic in action.")
+    print("Commander roster updated. Now includes the postmortem reviewer.")
+    print("Re-run run_war_room.py to see the reviewer in action.")
 
 
 if __name__ == "__main__":
