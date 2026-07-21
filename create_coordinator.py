@@ -1,114 +1,49 @@
-"""
-Create the coordinator agent that orchestrates the specialist swarm.
+"""Create the Incident Commander that orchestrates the war-room.
 
-The coordinator's roster is the four specialists created by create_specialists.py.
-The coordinator decides which specialists to consult, in what order, and how to
-synthesise their outputs into the final deliverable.
+Its roster is the specialists created by create_specialists.py. It carries the
+Anthropic `docx` skill — that is what turns its synthesis into the postmortem
+document that is the actual deliverable.
 
-Saves the coordinator's ID to .coordinator_id.
+Safe to re-run. If the commander already exists, its roster and prompt are
+updated in place (creating a new agent version) rather than duplicated.
 
 Usage:
     python create_coordinator.py
 """
 
-import json
 import os
-from pathlib import Path
 
 from anthropic import Anthropic
 
-
-COORDINATOR_SYSTEM = """\
-You are the Senior Partner running the Deal Desk. An inbound RFP has just
-arrived. Your job is to orchestrate the specialists, synthesise their work,
-and produce a single branded proposal response document.
-
-# Your roster
-
-You can call these specialists:
-- Pricing Specialist: commercial terms recommendation
-- Legal Reviewer: contract flags and counter-positions
-- Technical Fit Specialist: product capability fit
-- Competitive Intel Analyst: who else is in the deal and how to position
-
-# How to run a deal
-
-1. Read the RFP yourself first. Note the customer, scope, and any obvious
-   curveballs.
-
-2. Delegate to ALL FOUR specialists in parallel. Each gets:
-   - The full RFP text
-   - A clear, narrow brief stating what you need from them
-   - A deadline ("answer in one message, ~300 words")
-
-3. Synthesise their outputs into a single proposal response. The response
-   should cover:
-   - Executive summary (3 bullets)
-   - Our understanding of the customer's need
-   - Why we're the right fit (drawing on Technical Fit + Competitive Intel)
-   - Commercial proposal (drawing on Pricing)
-   - Contract approach (drawing on Legal)
-   - Risks and how we mitigate them
-
-4. Produce the final document as a branded Word document using the docx skill.
-   Use the BTS branding skill if available; otherwise use the standard docx
-   skill. The deliverable is the docx itself, not a chat message.
-
-# How to talk to specialists
-
-When delegating, be direct: "Pricing Specialist: for this RFP, recommend
-terms. Include discount band and red-line concessions. Cite past-wins.json
-where relevant."
-
-When you receive a specialist's reply, accept it. Don't second-guess. If
-you genuinely disagree, send the specialist a follow-up — but only if it
-matters.
-
-# Tone
-
-Senior partner running a real deal. Confident, terse, decisive. You move
-fast because the RFP deadline is real.
-"""
+from swarm.roster import commander_spec
+from swarm.store import IdStore
 
 
 def main() -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
+    if not os.environ.get("ANTHROPIC_API_KEY"):
         raise SystemExit("Set ANTHROPIC_API_KEY before running.")
 
-    specialist_ids_path = Path(".specialist_ids.json")
-    if not specialist_ids_path.exists():
-        raise SystemExit("Run create_specialists.py first.")
-    specialist_ids = json.loads(specialist_ids_path.read_text())
+    store = IdStore()
+    specialists = store.get("specialists")
+    if not specialists:
+        raise SystemExit("No specialists found. Run create_specialists.py first.")
 
-    client = Anthropic(
-        api_key=api_key,
-        default_headers={"anthropic-beta": "managed-agents-2026-04-01"},
-    )
+    spec = commander_spec(list(specialists.values()))
+    client = Anthropic()
 
-    coordinator = client.beta.agents.create(
-        name="Deal Desk Senior Partner",
-        model="claude-opus-4-7",  # Coordinator deserves the most capable model
-        system=COORDINATOR_SYSTEM,
-        tools=[{"type": "agent_toolset_20260401"}],
-        multiagent={
-            "type": "coordinator",
-            "agents": [
-                {"type": "agent", "id": agent_id}
-                for agent_id in specialist_ids.values()
-            ],
-        },
-        metadata={
-            "hackathon": "partner-basecamp-2026",
-            "track": "specialist-swarm",
-            "role": "coordinator",
-        },
-    )
+    existing_id = store.get("coordinator")
+    if existing_id:
+        agent = client.beta.agents.retrieve(existing_id)
+        client.beta.agents.update(existing_id, version=agent.version, **spec)
+        print(f"Incident Commander updated in place: {existing_id}")
+    else:
+        commander = client.beta.agents.create(**spec)
+        store.set("coordinator", commander.id)
+        print(f"Incident Commander created: {commander.id}")
 
-    Path(".coordinator_id").write_text(coordinator.id)
-    print(f"Coordinator created: {coordinator.id}")
-    print(f"Roster: {list(specialist_ids.keys())}")
-    print(f"\nNext: python upload_skills.py then python run_deal_desk.py")
+    print(f"Roster: {list(specialists.keys())}")
+    print(f"Skills: {[s['skill_id'] for s in spec['skills']]}")
+    print("\nNext: python run_war_room.py")
 
 
 if __name__ == "__main__":
