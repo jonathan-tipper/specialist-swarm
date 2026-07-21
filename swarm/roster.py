@@ -1,13 +1,5 @@
 """Agent specifications for the Incident War-Room.
 
-STUB — pending Epic 2 (issue #10). Content copied verbatim from the master
-plan (docs/superpowers/plans/2026-07-21-incident-war-room.md, Task 6) so
-Epic 3's scripts have a real, demo-usable roster rather than placeholder
-text while Epic 2 is in flight. Delete this notice and replace the whole
-file with whatever Epic 2's PR lands — do not hand-merge; if the landed
-version differs from this one at all, take theirs entirely and re-run the
-tests in tests/test_roster.py against it.
-
 Pure data plus builders — nothing here touches the network, so the whole
 roster (models, skills, prompts, multiagent block) is unit-testable.
 
