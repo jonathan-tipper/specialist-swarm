@@ -332,6 +332,7 @@
     };
 
     source.onerror = () => {
+      appendLine('Lost connection to the server. Is webapp.py still running?', 'log-error');
       setStatus('error');
       setButton('error');
       source.close();
