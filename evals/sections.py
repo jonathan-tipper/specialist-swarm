@@ -1,20 +1,14 @@
 """Structural section-coverage check against PRD §8.3 / §10.
 
-Kept as a local, independent copy of the section list rather than importing
-`swarm.roster.POSTMORTEM_SECTIONS` — evals/ must stay importable and testable
-before swarm/ has landed, and the two lists are a PRD-derived contract either
-way, so drift between them is what the roster's own tests already guard.
+`swarm.roster` is the one place the section list is authored (currently a
+stub pending Epic 2, issue #10 — see that module's own docstring). Importing
+it here rather than keeping a second copy means this check can't silently
+drift from whatever Epic 2 lands.
 """
 
-POSTMORTEM_SECTIONS = [
-    "Incident summary",
-    "Timeline",
-    "Root cause",
-    "Was this an attack?",
-    "Customer communications issued",
-    "Contributing factors",
-    "Action items",
-]
+from swarm.roster import POSTMORTEM_SECTIONS
+
+__all__ = ["POSTMORTEM_SECTIONS", "missing_sections"]
 
 
 def missing_sections(text: str, sections: list[str] = POSTMORTEM_SECTIONS) -> list[str]:

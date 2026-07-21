@@ -1,7 +1,7 @@
 # Agent evals
 
-`pytest` (once `swarm/` lands, per the Epic plans) proves the setup scripts
-and run loop are wired correctly with no network and no API key. It cannot
+`pytest` proves the setup scripts and run loop are wired correctly with no
+network and no API key (see `swarm/`, Epics 1–3). It cannot
 tell you whether a *given run's* postmortem actually reconciled the
 incident's two candidate causes, was blameless, or fanned out in parallel —
 those are PRD §10 criteria, and today they're checked by a human eyeballing
@@ -19,11 +19,14 @@ Task G's live run. This package makes that repeatable.
 | Comms voice compliance | `rubric.py` + `judge.py` | Prompt is; the live call isn't | `status-page-voice` skill |
 
 The judged criteria reuse the Postmortem Reviewer stretch goal's own rubric
-language (master plan `swarm/roster.py`, `REVIEWER_SYSTEM`) rather than
-inventing a second, possibly-inconsistent bar — the eval judge asks the same
-questions the reviewer would, but returns one verdict per criterion instead
-of a single PUBLISH/REVISE/ESCALATE call, so a regression is traceable to a
-specific dimension.
+language (`swarm/roster.py`, `REVIEWER_SYSTEM`) rather than inventing a
+second, possibly-inconsistent bar — the eval judge asks the same questions
+the reviewer would, but returns one verdict per criterion instead of a
+single PUBLISH/REVISE/ESCALATE call, so a regression is traceable to a
+specific dimension. `sections.py` similarly imports `POSTMORTEM_SECTIONS`
+from `swarm.roster` rather than keeping its own copy — that module is
+currently a stub pending Epic 2 (issue #10), so this check tracks whatever
+Epic 2 lands without further changes here.
 
 `judge.py` is deliberately not unit tested, for the same reason
 `run_war_room.py` isn't: it's a thin wrapper around a live model call.
@@ -46,14 +49,15 @@ python run_eval.py outputs/postmortem-INC-4417.docx --events outputs/events.json
 ## Known gap: no event log yet
 
 `fanout.is_parallel_fanout` expects a JSONL file of the run's SSE events,
-one JSON object per line, using the vocabulary the master plan's
-`swarm/events.py` already defines (`session.thread_created`,
-`agent.thread_message_received`, …). `run_war_room.py` doesn't write one —
-it only prints narration to stdout. To wire this up, add a line to the run
-loop's event handler that appends `json.dumps(event_dict) + "\n"` to
-`outputs/events.jsonl` alongside the existing `describe()` print. Until
-that lands, omit `--events` and the scorecard reports that check as `SKIP`
-rather than failing on a file that was never produced.
+one JSON object per line, using the vocabulary `swarm/events.py` already
+defines (`session.thread_created`, `agent.thread_message_received`, …).
+`run_war_room.py` (confirmed on `main` as of the Epic 3 merge) doesn't write
+one — it only prints narration to stdout via `describe()`. To wire this up,
+add a line to the run loop's event handler that appends
+`json.dumps(event_dict) + "\n"` to `outputs/events.jsonl` alongside the
+existing `describe()` print. Until that lands, omit `--events` and the
+scorecard reports that check as `SKIP` rather than failing on a file that
+was never produced.
 
 ## Extending to a second scenario
 
