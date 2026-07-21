@@ -12,7 +12,7 @@ from typing import Iterator, Optional
 
 from anthropic import Anthropic
 
-from swarm.events import describe, is_terminal
+from swarm.events import is_terminal, shape
 
 # Session outputs index ~1-3s after the session goes idle.
 FILE_LIST_ATTEMPTS = 4
@@ -68,8 +68,10 @@ def run_session(
 
     Yields dicts with a "kind" key:
       session_started {session_id, console_url}
-      line             {text}     -- narration, from swarm.events.describe
-      agent_text       {text}     -- streamed commander reply chunks
+      thread           {event: created|running, agent}   -- from swarm.events.shape
+      dispatch         {direction: tasked|reported, agent}
+      tool             {name}
+      commander_text   {text}     -- streamed commander reply chunks
       terminated       {}
       outputs          {files: [str]}
       error            {message}  -- any exception; the generator ends after this
@@ -97,13 +99,13 @@ def run_session(
                 }],
             )
             for event in stream:
-                line = describe(event)
-                if line:
-                    yield {"kind": "line", "text": line}
+                shaped = shape(event)
+                if shaped:
+                    yield shaped
                 elif getattr(event, "type", None) == "agent.message":
                     for block in event.content:
                         if getattr(block, "type", None) == "text":
-                            yield {"kind": "agent_text", "text": block.text}
+                            yield {"kind": "commander_text", "text": block.text}
 
                 if is_terminal(event):
                     yield {"kind": "terminated"}

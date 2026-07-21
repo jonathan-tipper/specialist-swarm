@@ -32,22 +32,51 @@ def is_terminal(event) -> bool:
     return False
 
 
+def shape(event) -> dict | None:
+    """Reduce a bridge-worthy SDK event to a small structured dict.
+
+    The web UI renders these semantically (agent cards, connectors); the CLI
+    formats them into narration lines via `format_line`. Returns None for
+    events that aren't part of the bridge story.
+    """
+    event_type = getattr(event, "type", None)
+
+    if event_type == "session.thread_created":
+        return {"kind": "thread", "event": "created",
+                "agent": getattr(event, "agent_name", "?")}
+    if event_type == "session.thread_status_running":
+        return {"kind": "thread", "event": "running",
+                "agent": getattr(event, "agent_name", "?")}
+    if event_type == "agent.thread_message_sent":
+        return {"kind": "dispatch", "direction": "tasked",
+                "agent": getattr(event, "to_agent_name", "?")}
+    if event_type == "agent.thread_message_received":
+        return {"kind": "dispatch", "direction": "reported",
+                "agent": getattr(event, "from_agent_name", "?")}
+    if event_type == "agent.tool_use":
+        return {"kind": "tool", "name": getattr(event, "name", "?")}
+
+    return None
+
+
+def format_line(shaped: dict) -> str:
+    """Render a shaped bridge event as one CLI narration line."""
+    if shaped["kind"] == "thread":
+        label = "on the bridge" if shaped["event"] == "created" else "investigating"
+        return f"  [{label}]    {shaped['agent']}"
+    if shaped["kind"] == "dispatch":
+        arrow = "tasked ->" if shaped["direction"] == "tasked" else "reported <-"
+        pad = " " * (11 - len(arrow))
+        return f"  [{arrow}]{pad}      {shaped['agent']}"
+    if shaped["kind"] == "tool":
+        return f"  [tool: {shaped['name']}]"
+    raise ValueError(f"Unknown shaped event kind: {shaped['kind']!r}")
+
+
 def describe(event) -> str | None:
     """A one-line render of the events worth narrating during a live demo.
 
     Returns None for events that shouldn't be printed.
     """
-    event_type = getattr(event, "type", None)
-
-    if event_type == "session.thread_created":
-        return f"  [on the bridge]    {getattr(event, 'agent_name', '?')}"
-    if event_type == "session.thread_status_running":
-        return f"  [investigating]    {getattr(event, 'agent_name', '?')}"
-    if event_type == "agent.thread_message_sent":
-        return f"  [tasked ->]        {getattr(event, 'to_agent_name', '?')}"
-    if event_type == "agent.thread_message_received":
-        return f"  [reported <-]      {getattr(event, 'from_agent_name', '?')}"
-    if event_type == "agent.tool_use":
-        return f"  [tool: {getattr(event, 'name', '?')}]"
-
-    return None
+    shaped = shape(event)
+    return format_line(shaped) if shaped else None

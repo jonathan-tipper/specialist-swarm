@@ -13,6 +13,7 @@ from pathlib import Path
 from anthropic import Anthropic
 
 from swarm.context import build_context
+from swarm.events import format_line
 from swarm.runner import run_session
 from swarm.store import IdStore
 
@@ -88,9 +89,9 @@ def main() -> None:
             print(f"\nOpening the bridge against commander {commander_id}...")
             print(f"Watch live: {console_url}")
             print("\n=== INCIDENT BRIDGE (this is the demo) ===\n")
-        elif kind == "line":
-            print(event["text"], flush=True)
-        elif kind == "agent_text":
+        elif kind in ("thread", "dispatch", "tool"):
+            print(format_line(event), flush=True)
+        elif kind == "commander_text":
             final_text.append(event["text"])
             print(event["text"], end="", flush=True)
         elif kind == "terminated":
