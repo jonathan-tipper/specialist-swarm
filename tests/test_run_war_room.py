@@ -1,13 +1,13 @@
-from run_war_room import resolve_console_url
+from run_war_room import kickoff_message
 
 
-def test_uses_workspace_scoped_url_when_workspace_is_set():
-    url = resolve_console_url("sesn_123", "wrkspc_abc")
-    assert url == "https://platform.claude.com/workspaces/wrkspc_abc/sessions/sesn_123"
+def test_kickoff_message_includes_incident_id():
+    text = kickoff_message()
+    assert "INC-4417" in text
 
 
-def test_falls_back_to_workspace_less_url_when_unset():
-    """The literal string "default" is not a real workspace ID and 404s."""
-    url = resolve_console_url("sesn_123", None)
-    assert url == "https://platform.claude.com/sessions/sesn_123"
-    assert "default" not in url
+def test_kickoff_message_includes_supporting_docs():
+    text = kickoff_message()
+    assert "service-topology.md" in text
+    assert "recent-changes.json" in text
+    assert "past-incidents.json" in text
