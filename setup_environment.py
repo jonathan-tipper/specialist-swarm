@@ -1,39 +1,40 @@
-"""
-Create the cloud Environment that the Deal Desk session runs in.
+"""Create the cloud Environment the war-room session runs in.
 
-Safe to run multiple times — if `.environment_id` already exists, it's reused.
+Safe to re-run — the environment ID is recorded in .swarm_ids.json and reused.
 
 Usage:
+    export ANTHROPIC_API_KEY="sk-ant-..."
     python setup_environment.py
 """
 
 import os
-from pathlib import Path
 
 from anthropic import Anthropic
+
+from swarm.store import IdStore
 
 
 def main() -> None:
     if not os.environ.get("ANTHROPIC_API_KEY"):
         raise SystemExit("Set ANTHROPIC_API_KEY before running.")
 
-    env_path = Path(".environment_id")
-    if env_path.exists():
-        existing = env_path.read_text().strip()
-        print(f"Environment already exists: {existing}")
-        print("(remove .environment_id if you want to provision a new one)")
-        return
-
+    store = IdStore()
     client = Anthropic()
-    environment = client.beta.environments.create(
-        name="specialist-swarm-env",
-        config={
-            "type": "cloud",
-            "networking": {"type": "unrestricted"},
-        },
-    )
-    env_path.write_text(environment.id)
-    print(f"Environment created: {environment.id}")
+
+    def create() -> str:
+        environment = client.beta.environments.create(
+            name="incident-war-room-env",
+            config={
+                "type": "cloud",
+                "networking": {"type": "unrestricted"},
+            },
+        )
+        return environment.id
+
+    environment_id, created = store.get_or_create("environment", create)
+
+    print(f"{'Created' if created else 'Reusing'} environment: {environment_id}")
+    print("\nNext: python create_specialists.py")
 
 
 if __name__ == "__main__":
