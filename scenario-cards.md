@@ -1,62 +1,60 @@
 # Scenario Cards — Option 3
 
-Each team picks ONE scenario. Each is shaped like real services-firm work: a coordinator who orchestrates and 3-5 specialists who own lanes.
+Each team picks ONE. Each is shaped like real incident response: a commander who
+runs the bridge and specialists who own lanes.
 
 ---
 
-## Card A — Deal Desk (default scenario, fully wired in starter code)
+## Card A — Checkout outage (default, fully wired in starter code)
 
-**Coordinator:** "Senior Partner — Deal Desk Lead"
-- Reads an inbound RFP
-- Routes work to specialists
-- Synthesises specialist outputs into a branded proposal doc
+**Coordinator:** "Incident Commander"
+- Reads the incident ticket
+- Tasks specialists in parallel
+- Reconciles conflicting findings into a blameless postmortem
 
 **Specialists:**
-1. **Pricing Specialist** (skill: pricing-playbook) — decides commercial terms based on RFP scope and past wins
-2. **Legal Reviewer** (skill: legal-checklist) — flags risky RFP requirements and recommends contract positions
-3. **Technical Fit** (skill: product-overview) — assesses whether our product covers the RFP's requirements
-4. **Competitive Intel** (skill: competitive-intel) — identifies which competitors are likely in this deal and how to position
+1. **SRE Responder** (skill: severity-runbook) — severity, root cause, rollback call
+2. **Security Analyst** (skill: threat-triage) — attack or failure, blast radius, disclosure
+3. **Comms Lead** (skill: status-page-voice) — customer-facing status update
 
-**The trigger:** `synthetic-data/rfp-acme-corp.md` (an RFP from Acme Corp for an enterprise data platform)
+**The trigger:** `synthetic-data/incident-INC-4417.md` — checkout API 5xx in
+EU and APAC, with a config deploy *and* an anomalous traffic spike in the same
+window.
 
-**The deliverable:** A branded Word document at `outputs/proposal-response.docx`
+**The deliverable:** `outputs/postmortem-INC-4417.docx`
+
+**Why it's the default:** the dual-cause ambiguity means the commander has to
+actually reconcile, not relay. That's the part that shows the architecture
+earning its keep.
 
 ---
 
-## Card B — M&A Diligence Lite
+## Card B — Data breach response
 
-**Coordinator:** "M&A Lead"
-- Reads a deal memo and the target's data room
-- Routes diligence work to specialists
-- Produces a structured risk-and-recommendation memo
+**Coordinator:** "Breach Response Lead"
 
 **Specialists:**
-1. **Financial Analyst** — reviews the target's financials, flags concerns
-2. **Legal Diligence** — scans contracts for change-of-control clauses, IP issues, litigation
-3. **Tech Stack Assessor** — evaluates technical debt, integration complexity
-4. **People & Culture** — assesses leadership, retention risk
+1. **Forensics** — what was accessed, when, by whom
+2. **Legal & Privacy** — which disclosure clocks have started, in which jurisdictions
+3. **Customer Trust** — notification drafting, support-team briefing
+4. **Engineering** — containment and remediation
 
-**The trigger:** A synthetic data room (you'll need to extend `synthetic-data/` for this one)
-
-**The deliverable:** A diligence memo in docx
+**The deliverable:** a regulator-ready incident report plus a customer
+notification draft.
 
 ---
 
-## Card C — Hire-to-Onboard Orchestrator
+## Card C — Degraded-dependency triage
 
-**Coordinator:** "Onboarding Lead"
-- Takes a new hire's profile and start date
-- Coordinates the four functions that have to be ready by day 1
+**Coordinator:** "Platform On-Call Lead"
 
 **Specialists:**
-1. **Recruiter** — confirms offer terms, captures references status
-2. **IT Provisioning** — generates the laptop + accounts checklist
-3. **Onboarding Buddy Match** — picks a buddy based on team and seniority
-4. **Welcome Packet** — generates personalised welcome content
+1. **Dependency Analyst** — which upstream is failing and how far it propagates
+2. **Capacity** — can we absorb it, or do we shed load
+3. **Product Impact** — which user journeys break, ranked by revenue
+4. **Vendor Liaison** — what the provider has said, what to escalate
 
-**The trigger:** A synthetic new-hire-profile.md
-
-**The deliverable:** A day-1 readiness pack in docx
+**The deliverable:** a go/no-go decision memo on failing over.
 
 ---
 
@@ -64,6 +62,6 @@ Each team picks ONE scenario. Each is shaped like real services-firm work: a coo
 
 | If your team is... | Pick |
 | --- | --- |
-| Just want the cleanest path | A (Deal Desk — code is ready) |
-| Most senior partner audience | B (M&A — gravitas) |
-| Most relatable to HR / people-ops clients | C (Hiring) |
+| Just want the cleanest path | A (Checkout outage — code is ready) |
+| Most senior / exec audience | B (Data breach — regulatory stakes) |
+| Most relatable to platform / SRE clients | C (Degraded dependency) |
