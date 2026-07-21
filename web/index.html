@@ -3,341 +3,135 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Incident War-Room</title>
-<style>
-  :root {
-    --bg: #ffffff;
-    --surface: #f7f8fa;
-    --text: #14161a;
-    --text-muted: #62687a;
-    --border: #e3e6ec;
-    --accent: #2454e0;
-    --accent-text: #ffffff;
-    --success: #158a4a;
-    --danger: #c5301f;
-    --warning: #a15c00;
-
-    --log-bg: #0c0e13;
-    --log-text: #ced2dc;
-    --log-muted: #7e8494;
-    --log-thread: #5fc4ff;
-    --log-tasked: #f2b64a;
-    --log-reported: #57d38c;
-    --log-error: #ff8b7a;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0f1115;
-      --surface: #171a21;
-      --text: #e7e9ee;
-      --text-muted: #9aa0b0;
-      --border: #2a2e3a;
-      --accent: #6ea0ff;
-      --accent-text: #0f1115;
-      --success: #4fd188;
-      --danger: #ff8b7a;
-      --warning: #e2ab5c;
-
-      --log-bg: #07080b;
-    }
-  }
-
-  * { box-sizing: border-box; }
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    margin: 0;
-  }
-
-  .page {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 48px 20px 64px;
-  }
-
-  .hero-top {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  h1 {
-    font-size: 26px;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: -0.01em;
-  }
-
-  .badge {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: var(--danger);
-    background: color-mix(in srgb, var(--danger) 12%, transparent);
-    border-radius: 999px;
-    padding: 3px 9px;
-  }
-
-  .blurb {
-    color: var(--text-muted);
-    font-size: 15px;
-    line-height: 1.5;
-    margin: 10px 0 28px;
-    max-width: 56ch;
-  }
-
-  .controls {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-
-  button {
-    font: inherit;
-    font-size: 15px;
-    font-weight: 600;
-    padding: 10px 18px;
-    background: var(--accent);
-    color: var(--accent-text);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: opacity 120ms ease, transform 120ms ease;
-  }
-
-  button:hover:not(:disabled) { opacity: 0.88; }
-  button:active:not(:disabled) { transform: translateY(1px); }
-
-  button:focus-visible,
-  a:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  button:disabled {
-    background: var(--border);
-    color: var(--text-muted);
-    cursor: default;
-  }
-
-  .spinner {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    margin-right: 7px;
-    border: 2px solid color-mix(in srgb, var(--accent-text) 40%, transparent);
-    border-top-color: var(--accent-text);
-    border-radius: 50%;
-    vertical-align: -2px;
-    animation: spin 700ms linear infinite;
-  }
-
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-muted);
-  }
-
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--text-muted);
-  }
-
-  .pill-running .dot {
-    background: var(--accent);
-    animation: pulse 1.4s ease-in-out infinite;
-  }
-  .pill-running { color: var(--accent); }
-
-  .pill-done .dot { background: var(--success); }
-  .pill-done { color: var(--success); }
-
-  .pill-error .dot { background: var(--danger); }
-  .pill-error { color: var(--danger); }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(1.3); }
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .spinner, .pill-running .dot { animation: none; }
-  }
-
-  #log {
-    background: var(--log-bg);
-    color: var(--log-text);
-    padding: 16px 18px;
-    border-radius: 10px;
-    height: 360px;
-    overflow-y: auto;
-    font-family: ui-monospace, Menlo, Consolas, monospace;
-    font-size: 13px;
-    line-height: 1.65;
-  }
-
-  .log-line { white-space: pre-wrap; overflow-wrap: anywhere; }
-  .log-empty { color: var(--log-muted); font-style: italic; }
-  .log-thread { color: var(--log-thread); }
-  .log-tasked { color: var(--log-tasked); }
-  .log-reported { color: var(--log-reported); }
-  .log-tool { color: var(--log-muted); }
-  .log-error { color: var(--log-error); }
-
-  .results {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 18px;
-  }
-
-  .results a {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: none;
-    color: var(--text);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 14px;
-  }
-
-  .results a:hover { border-color: var(--accent); color: var(--accent); }
-
-  @media (max-width: 480px) {
-    .page { padding: 32px 16px 48px; }
-    #log { height: 300px; }
-  }
-</style>
+<meta name="color-scheme" content="dark">
+<title>INC-4417 · War-Room Bridge</title>
+<link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <div class="page">
-    <header>
-      <div class="hero-top">
-        <h1>Incident War-Room</h1>
-        <span class="badge">SEV2 · ACTIVE</span>
-      </div>
-      <p class="blurb">
-        INC-4417 — Checkout API returning 5xx for a subset of regions.
-        One click tasks SRE, Security, and Comms in parallel and writes a
-        blameless postmortem.
-      </p>
-    </header>
+<div class="page">
 
-    <div class="controls">
-      <button id="start" type="button">Start Incident</button>
-      <span id="status" class="pill pill-idle"><span class="dot"></span><span class="label">Idle</span></span>
+  <!-- ============ Header: the incident itself ============ -->
+  <header class="masthead">
+    <div class="masthead-id">
+      <span class="sev-badge">SEV2</span>
+      <h1>INC-4417 <span class="masthead-title">Checkout API elevated 5xx — EU + APAC</span></h1>
     </div>
+    <div class="masthead-right">
+      <div class="clock" id="clock" aria-label="Elapsed bridge time">
+        <span class="clock-label">BRIDGE</span>
+        <span class="clock-time" id="clock-time">--:--</span>
+      </div>
+      <button id="start" type="button">Open the bridge</button>
+    </div>
+  </header>
 
-    <div id="log"><div class="log-empty">Log will appear here once you start the incident.</div></div>
-    <div id="results" class="results"></div>
-  </div>
+  <!-- Alert payload strip: real ticket facts, visible before the run -->
+  <section class="alert-strip" aria-label="Alert summary">
+    <div class="fact"><span class="fact-label">Detected</span><span class="fact-value">13:42 UTC · Datadog #8821</span></div>
+    <div class="fact"><span class="fact-label">eu-west-1</span><span class="fact-value fact-bad">21.4% errors</span></div>
+    <div class="fact"><span class="fact-label">ap-southeast-1</span><span class="fact-value fact-bad">18.9% errors</span></div>
+    <div class="fact"><span class="fact-label">us-east-1 / us-west-2</span><span class="fact-value fact-ok">baseline</span></div>
+    <div class="fact"><span class="fact-label">p99 latency</span><span class="fact-value">340ms → 1,180ms</span></div>
+  </section>
 
-<script>
-  const btn = document.getElementById('start');
-  const status = document.getElementById('status');
-  const statusLabel = status.querySelector('.label');
-  const log = document.getElementById('log');
-  const results = document.getElementById('results');
+  <!-- ============ Phase rail: the agentic journey ============ -->
+  <nav class="phase-rail" id="phase-rail" aria-label="Run phases">
+    <div class="phase" data-phase="intake"><span class="phase-dot"></span><span class="phase-name">Intake</span></div>
+    <div class="phase" data-phase="fanout"><span class="phase-dot"></span><span class="phase-name">Fan-out</span></div>
+    <div class="phase" data-phase="investigation"><span class="phase-dot"></span><span class="phase-name">Investigation</span></div>
+    <div class="phase" data-phase="reconciliation"><span class="phase-dot"></span><span class="phase-name">Reconciliation</span></div>
+    <div class="phase" data-phase="postmortem"><span class="phase-dot"></span><span class="phase-name">Postmortem</span></div>
+  </nav>
 
-  const STATUS_TEXT = { idle: 'Idle', running: 'Running', done: 'Done', error: 'Error' };
+  <!-- ============ The bridge board ============ -->
+  <section class="board" id="board" aria-label="Incident bridge">
 
-  function setStatus(state) {
-    status.className = `pill pill-${state}`;
-    statusLabel.textContent = STATUS_TEXT[state];
-  }
+    <article class="agent-card commander" id="agent-commander" data-status="standby">
+      <div class="agent-head">
+        <span class="agent-hue" aria-hidden="true"></span>
+        <h2 class="agent-name">Incident Commander</h2>
+        <span class="agent-status" id="commander-status">Standby</span>
+      </div>
+      <div class="agent-meta">
+        <span class="chip chip-model">claude-opus-4-8</span>
+        <span class="chip chip-skill">docx</span>
+        <span class="chip chip-role">coordinator</span>
+      </div>
+      <p class="agent-detail" id="commander-detail">Waiting for the page. The commander reads the ticket, briefs all three specialists in parallel, reconciles their findings, and writes the postmortem.</p>
+    </article>
 
-  function setButton(state) {
-    if (state === 'running') {
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span>Running…';
-    } else {
-      btn.disabled = false;
-      btn.textContent = state === 'idle' ? 'Start Incident' : 'Run Again';
-    }
-  }
+    <!-- SVG connector layer, positioned over the board -->
+    <svg class="connectors" id="connectors" aria-hidden="true"></svg>
 
-  function classifyLine(text) {
-    if (text.startsWith('  [on the bridge]') || text.startsWith('  [investigating]')) return 'log-thread';
-    if (text.startsWith('  [tasked ->]')) return 'log-tasked';
-    if (text.startsWith('  [reported <-]')) return 'log-reported';
-    if (text.startsWith('  [tool:')) return 'log-tool';
-    return '';
-  }
+    <div class="specialists">
+      <article class="agent-card specialist" id="agent-sre" data-agent="SRE Responder" data-status="standby">
+        <div class="agent-head">
+          <span class="agent-hue" aria-hidden="true"></span>
+          <h2 class="agent-name">SRE Responder</h2>
+          <span class="agent-status">Standby</span>
+        </div>
+        <div class="agent-meta">
+          <span class="chip chip-model">claude-sonnet-5</span>
+          <span class="chip chip-skill">severity-runbook</span>
+        </div>
+        <p class="agent-detail">Root cause &amp; mitigation. Owns the rollback call.</p>
+        <ul class="agent-times" aria-label="SRE Responder timeline"></ul>
+      </article>
 
-  function appendLine(text, forcedClass) {
-    const line = document.createElement('div');
-    line.className = `log-line ${forcedClass || classifyLine(text)}`.trim();
-    line.textContent = text;
-    log.appendChild(line);
-    log.scrollTop = log.scrollHeight;
-  }
+      <article class="agent-card specialist" id="agent-security" data-agent="Security Analyst" data-status="standby">
+        <div class="agent-head">
+          <span class="agent-hue" aria-hidden="true"></span>
+          <h2 class="agent-name">Security Analyst</h2>
+          <span class="agent-status">Standby</span>
+        </div>
+        <div class="agent-meta">
+          <span class="chip chip-model">claude-sonnet-5</span>
+          <span class="chip chip-skill">threat-triage</span>
+        </div>
+        <p class="agent-detail">Attack or failure? Blast radius &amp; disclosure triggers.</p>
+        <ul class="agent-times" aria-label="Security Analyst timeline"></ul>
+      </article>
 
-  function addResultLink(href, label, external) {
-    const a = document.createElement('a');
-    a.href = href;
-    if (external) a.target = '_blank';
-    a.textContent = label;
-    results.appendChild(a);
-  }
+      <article class="agent-card specialist" id="agent-comms" data-agent="Comms Lead" data-status="standby">
+        <div class="agent-head">
+          <span class="agent-hue" aria-hidden="true"></span>
+          <h2 class="agent-name">Comms Lead</h2>
+          <span class="agent-status">Standby</span>
+        </div>
+        <div class="agent-meta">
+          <span class="chip chip-model">claude-sonnet-5</span>
+          <span class="chip chip-skill">status-page-voice</span>
+        </div>
+        <p class="agent-detail">Customer-facing status update, publishable verbatim.</p>
+        <ul class="agent-times" aria-label="Comms Lead timeline"></ul>
+      </article>
+    </div>
+  </section>
 
-  btn.addEventListener('click', () => {
-    setButton('running');
-    setStatus('running');
-    log.innerHTML = '';
-    results.innerHTML = '';
+  <!-- ============ Outcome row (hidden until the run ends) ============ -->
+  <section class="outcome" id="outcome" hidden aria-live="polite"></section>
 
-    const source = new EventSource('/events');
+  <!-- ============ Narration + transcript ============ -->
+  <section class="panels">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Commander narration</h2>
+        <span class="panel-hint">streamed live from the bridge</span>
+      </div>
+      <div class="narration" id="narration"><p class="placeholder">The commander's reasoning appears here — reading the ticket, briefing the specialists, reconciling their findings.</p></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Bridge transcript</h2>
+        <span class="panel-hint">every event, timestamped</span>
+      </div>
+      <div class="transcript" id="transcript"><p class="placeholder">Raw event feed. Nothing on the wire yet.</p></div>
+    </div>
+  </section>
 
-    source.onmessage = (e) => {
-      const event = JSON.parse(e.data);
+  <p class="statusline" id="statusline" role="status">Bridge closed. Open it to run INC-4417.</p>
+</div>
 
-      if (event.kind === 'session_started') {
-        appendLine(`session started: ${event.session_id}`);
-        addResultLink(event.console_url, 'View full session', true);
-      } else if (event.kind === 'line' || event.kind === 'agent_text') {
-        appendLine(event.text);
-      } else if (event.kind === 'terminated') {
-        appendLine('[bridge closed]');
-      } else if (event.kind === 'outputs') {
-        if (event.files.length) {
-          event.files.forEach((f) => addResultLink(`/outputs/${encodeURIComponent(f)}`, `Download ${f}`, false));
-        } else {
-          appendLine('No files produced.', 'log-error');
-        }
-        setStatus('done');
-        setButton('done');
-        source.close();
-      } else if (event.kind === 'error') {
-        appendLine(event.message, 'log-error');
-        setStatus('error');
-        setButton('error');
-        source.close();
-      }
-    };
-
-    source.onerror = () => {
-      appendLine('Lost connection to the server. Is webapp.py still running?', 'log-error');
-      setStatus('error');
-      setButton('error');
-      source.close();
-    };
-  });
-</script>
+<script src="/static/app.js"></script>
 </body>
 </html>

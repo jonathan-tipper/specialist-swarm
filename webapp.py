@@ -26,6 +26,7 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 app = FastAPI()
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
+app.mount("/static", StaticFiles(directory="web"), name="static")
 
 _run_lock = threading.Lock()
 

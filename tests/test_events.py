@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from swarm.events import describe, is_terminal
+from swarm.events import describe, is_terminal, shape
 
 
 def evt(type_, **kwargs):
@@ -71,3 +71,35 @@ def test_describe_tool_use():
 
 def test_describe_unknown_returns_none():
     assert describe(evt("span.model_request_start")) is None
+
+
+def test_shape_thread_created():
+    assert shape(evt("session.thread_created", agent_name="SRE Responder")) == {
+        "kind": "thread", "event": "created", "agent": "SRE Responder"
+    }
+
+
+def test_shape_thread_running():
+    assert shape(evt("session.thread_status_running", agent_name="Comms Lead")) == {
+        "kind": "thread", "event": "running", "agent": "Comms Lead"
+    }
+
+
+def test_shape_tasked():
+    assert shape(evt("agent.thread_message_sent", to_agent_name="Security Analyst")) == {
+        "kind": "dispatch", "direction": "tasked", "agent": "Security Analyst"
+    }
+
+
+def test_shape_reported():
+    assert shape(evt("agent.thread_message_received", from_agent_name="Security Analyst")) == {
+        "kind": "dispatch", "direction": "reported", "agent": "Security Analyst"
+    }
+
+
+def test_shape_tool_use():
+    assert shape(evt("agent.tool_use", name="bash")) == {"kind": "tool", "name": "bash"}
+
+
+def test_shape_unknown_returns_none():
+    assert shape(evt("span.model_request_start")) is None
