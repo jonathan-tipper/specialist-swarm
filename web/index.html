@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Incident War-Room</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f7f8fa;
+    --text: #14161a;
+    --text-muted: #62687a;
+    --border: #e3e6ec;
+    --accent: #2454e0;
+    --accent-text: #ffffff;
+    --success: #158a4a;
+    --danger: #c5301f;
+    --warning: #a15c00;
+
+    --log-bg: #0c0e13;
+    --log-text: #ced2dc;
+    --log-muted: #7e8494;
+    --log-thread: #5fc4ff;
+    --log-tasked: #f2b64a;
+    --log-reported: #57d38c;
+    --log-error: #ff8b7a;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --surface: #171a21;
+      --text: #e7e9ee;
+      --text-muted: #9aa0b0;
+      --border: #2a2e3a;
+      --accent: #6ea0ff;
+      --accent-text: #0f1115;
+      --success: #4fd188;
+      --danger: #ff8b7a;
+      --warning: #e2ab5c;
+
+      --log-bg: #07080b;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+  }
+
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 20px 64px;
+  }
+
+  .hero-top {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .badge {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+
+  .blurb {
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 10px 0 28px;
+    max-width: 56ch;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  button {
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 18px;
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+
+  button:hover:not(:disabled) { opacity: 0.88; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  button:disabled {
+    background: var(--border);
+    color: var(--text-muted);
+    cursor: default;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 7px;
+    border: 2px solid color-mix(in srgb, var(--accent-text) 40%, transparent);
+    border-top-color: var(--accent-text);
+    border-radius: 50%;
+    vertical-align: -2px;
+    animation: spin 700ms linear infinite;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  .pill-running .dot {
+    background: var(--accent);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .pill-running { color: var(--accent); }
+
+  .pill-done .dot { background: var(--success); }
+  .pill-done { color: var(--success); }
+
+  .pill-error .dot { background: var(--danger); }
+  .pill-error { color: var(--danger); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.3); }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spinner, .pill-running .dot { animation: none; }
+  }
+
+  #log {
+    background: var(--log-bg);
+    color: var(--log-text);
+    padding: 16px 18px;
+    border-radius: 10px;
+    height: 360px;
+    overflow-y: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .log-line { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .log-empty { color: var(--log-muted); font-style: italic; }
+  .log-thread { color: var(--log-thread); }
+  .log-tasked { color: var(--log-tasked); }
+  .log-reported { color: var(--log-reported); }
+  .log-tool { color: var(--log-muted); }
+  .log-error { color: var(--log-error); }
+
+  .results {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .results a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+  }
+
+  .results a:hover { border-color: var(--accent); color: var(--accent); }
+
+  @media (max-width: 480px) {
+    .page { padding: 32px 16px 48px; }
+    #log { height: 300px; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="hero-top">
+        <h1>Incident War-Room</h1>
+        <span class="badge">SEV2 · ACTIVE</span>
+      </div>
+      <p class="blurb">
+        INC-4417 — Checkout API returning 5xx for a subset of regions.
+        One click tasks SRE, Security, and Comms in parallel and writes a
+        blameless postmortem.
+      </p>
+    </header>
+
+    <div class="controls">
+      <button id="start" type="button">Start Incident</button>
+      <span id="status" class="pill pill-idle"><span class="dot"></span><span class="label">Idle</span></span>
+    </div>
+
+    <div id="log"><div class="log-empty">Log will appear here once you start the incident.</div></div>
+    <div id="results" class="results"></div>
+  </div>
+
+<script>
+  const btn = document.getElementById('start');
+  const status = document.getElementById('status');
+  const statusLabel = status.querySelector('.label');
+  const log = document.getElementById('log');
+  const results = document.getElementById('results');
+
+  const STATUS_TEXT = { idle: 'Idle', running: 'Running', done: 'Done', error: 'Error' };
+
+  function setStatus(state) {
+    status.className = `pill pill-${state}`;
+    statusLabel.textContent = STATUS_TEXT[state];
+  }
+
+  function setButton(state) {
+    if (state === 'running') {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Running…';
+    } else {
+      btn.disabled = false;
+      btn.textContent = state === 'idle' ? 'Start Incident' : 'Run Again';
+    }
+  }
+
+  function classifyLine(text) {
+    if (text.startsWith('  [on the bridge]') || text.startsWith('  [investigating]')) return 'log-thread';
+    if (text.startsWith('  [tasked ->]')) return 'log-tasked';
+    if (text.startsWith('  [reported <-]')) return 'log-reported';
+    if (text.startsWith('  [tool:')) return 'log-tool';
+    return '';
+  }
+
+  function appendLine(text, forcedClass) {
+    const line = document.createElement('div');
+    line.className = `log-line ${forcedClass || classifyLine(text)}`.trim();
+    line.textContent = text;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function addResultLink(href, label, external) {
+    const a = document.createElement('a');
+    a.href = href;
+    if (external) a.target = '_blank';
+    a.textContent = label;
+    results.appendChild(a);
+  }
+
+  btn.addEventListener('click', () => {
+    setButton('running');
+    setStatus('running');
+    log.innerHTML = '';
+    results.innerHTML = '';
+
+    const source = new EventSource('/events');
+
+    source.onmessage = (e) => {
+      const event = JSON.parse(e.data);
+
+      if (event.kind === 'session_started') {
+        appendLine(`session started: ${event.session_id}`);
+        addResultLink(event.console_url, 'View full session', true);
+      } else if (event.kind === 'line' || event.kind === 'agent_text') {
+        appendLine(event.text);
+      } else if (event.kind === 'terminated') {
+        appendLine('[bridge closed]');
+      } else if (event.kind === 'outputs') {
+        if (event.files.length) {
+          event.files.forEach((f) => addResultLink(`/outputs/${encodeURIComponent(f)}`, `Download ${f}`, false));
+        } else {
+          appendLine('No files produced.', 'log-error');
+        }
+        setStatus('done');
+        setButton('done');
+        source.close();
+      } else if (event.kind === 'error') {
+        appendLine(event.message, 'log-error');
+        setStatus('error');
+        setButton('error');
+        source.close();
+      }
+    };
+
+    source.onerror = () => {
+      appendLine('Lost connection to the server. Is webapp.py still running?', 'log-error');
+      setStatus('error');
+      setButton('error');
+      source.close();
+    };
+  });
+</script>
+</body>
+</html>

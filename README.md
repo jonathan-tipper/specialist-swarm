@@ -78,6 +78,11 @@ Run these **in order**. Every one is safe to re-run — IDs are recorded in
 By minute 30 you have a postmortem in `outputs/`, written by a commander who
 reconciled three specialists who each used their own skill.
 
+Prefer a browser? `python webapp.py` serves the same run at
+`http://127.0.0.1:8000` — one button, a live log of the fan-out, and a
+download link for the postmortem when it's done. Steps 1–4 above still have
+to be run first.
+
 ### The roster
 
 | Role | Agent | Model | Skill |
