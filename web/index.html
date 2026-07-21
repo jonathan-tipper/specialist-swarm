@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Incident War-Room</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    max-width: 720px;
+    margin: 40px auto;
+    padding: 0 16px;
+    color: #1a1a1a;
+  }
+  .blurb { color: #555; }
+  button {
+    font-size: 16px;
+    padding: 10px 20px;
+    background: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:disabled { background: #999; cursor: default; }
+  #status { margin: 12px 0; font-weight: 600; }
+  #log {
+    background: #111;
+    color: #d0d0d0;
+    padding: 16px;
+    border-radius: 6px;
+    height: 360px;
+    overflow-y: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+  }
+  #log .error { color: #ff6b6b; }
+  #results a {
+    display: block;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+  <h1>Incident War-Room</h1>
+  <p class="blurb">
+    INC-4417 — Checkout API returning 5xx for a subset of regions.
+    One click tasks SRE, Security, and Comms in parallel and writes a
+    blameless postmortem.
+  </p>
+  <button id="start">Start Incident</button>
+  <div id="status">idle</div>
+  <pre id="log"></pre>
+  <div id="results"></div>
+
+<script>
+  const btn = document.getElementById('start');
+  const status = document.getElementById('status');
+  const log = document.getElementById('log');
+  const results = document.getElementById('results');
+
+  function appendLine(text, cls) {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = text;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  btn.addEventListener('click', () => {
+    btn.disabled = true;
+    status.textContent = 'running';
+    log.textContent = '';
+    results.innerHTML = '';
+
+    const source = new EventSource('/events');
+
+    source.onmessage = (e) => {
+      const event = JSON.parse(e.data);
+
+      if (event.kind === 'session_started') {
+        appendLine(`session started: ${event.session_id}`);
+        const link = document.createElement('a');
+        link.href = event.console_url;
+        link.target = '_blank';
+        link.textContent = 'view full session';
+        results.appendChild(link);
+      } else if (event.kind === 'line' || event.kind === 'agent_text') {
+        appendLine(event.text);
+      } else if (event.kind === 'terminated') {
+        appendLine('[bridge closed]');
+      } else if (event.kind === 'outputs') {
+        if (event.files.length) {
+          event.files.forEach((f) => {
+            const a = document.createElement('a');
+            a.href = `/outputs/${encodeURIComponent(f)}`;
+            a.textContent = `download ${f}`;
+            results.appendChild(a);
+          });
+        } else {
+          appendLine('No files produced.', 'error');
+        }
+        status.textContent = 'done';
+        btn.disabled = false;
+        source.close();
+      } else if (event.kind === 'error') {
+        appendLine(event.message, 'error');
+        status.textContent = 'error';
+        btn.disabled = false;
+        source.close();
+      }
+    };
+
+    source.onerror = () => {
+      status.textContent = 'error';
+      btn.disabled = false;
+      source.close();
+    };
+  });
+</script>
+</body>
+</html>
